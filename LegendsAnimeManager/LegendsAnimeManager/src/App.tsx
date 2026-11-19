@@ -1,3 +1,6 @@
+import { useEffect } from "react";
+import { initializeDatabase } from "./database/db";
+
 import {
   LayoutDashboard,
   Library,
@@ -17,7 +20,9 @@ import {
   MoreHorizontal,
   Tv,
 } from "lucide-react";
+
 import "./App.css";
+
 
 const anime = [
   {
@@ -75,6 +80,16 @@ const navGroups = [
 ];
 
 function App() {
+  useEffect(() => {
+    initializeDatabase()
+      .then(() => {
+        console.log("Database ready!");
+      })
+      .catch((error: unknown) => {
+        console.error("Database initialization failed:", error);
+      });
+  }, []);
+
   return (
     <div className="app-shell">
       <aside className="sidebar">

@@ -1,5 +1,7 @@
 {
-  "dependencies": {
-    "lucide-react": "^1.76.0"
+  "scripts": {
+    "dev": "npm --prefix LegendsAnimeManager run tauri -- dev",
+    "build": "npm --prefix LegendsAnimeManager run build",
+    "tauri": "npm --prefix LegendsAnimeManager run tauri --"
   }
 }
