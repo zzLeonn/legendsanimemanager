@@ -11,6 +11,21 @@ export async function getDatabase(): Promise<Database> {
   return db;
 }
 
+export type AnimeStatus =
+  | "Watching"
+  | "Completed"
+  | "Plan to Watch"
+  | "On Hold"
+  | "Dropped";
+
+export const ANIME_STATUSES: AnimeStatus[] = [
+  "Watching",
+  "Completed",
+  "Plan to Watch",
+  "On Hold",
+  "Dropped",
+];
+
 // Existing anime catalogue structure from LegendsMALBot
 export interface Anime {
   id: number;
@@ -28,7 +43,7 @@ export interface UserAnime {
   title: string;
   photo: string | null;
   link: string | null;
-  status: string;
+  status: AnimeStatus;
   score: number;
   episodes_total: number;
   episodes_watched: number;
@@ -40,10 +55,17 @@ export interface NewAnime {
   title: string;
   photo?: string;
   link?: string;
-  status?: string;
+  status?: AnimeStatus;
   score?: number;
   episodes_total?: number;
   episodes_watched?: number;
+}
+
+export interface UpdateAnime {
+  status: AnimeStatus;
+  score: number;
+  episodes_total: number;
+  episodes_watched: number;
 }
 
 // Initialize database
@@ -76,7 +98,7 @@ export async function initializeDatabase(): Promise<void> {
     )
   `);
 
-  // Individual episode tracking
+  // Individual episode tracking table
   await database.execute(`
     CREATE TABLE IF NOT EXISTS episodes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -188,6 +210,63 @@ export async function getAnimeList(): Promise<UserAnime[]> {
     JOIN anime a ON a.id = ua.anime_id
     ORDER BY ua.added_at DESC
   `);
+}
+
+// Update watch status, rating, and episode progress
+export async function updateAnime(
+  id: number,
+  updates: UpdateAnime
+): Promise<void> {
+  const database = await getDatabase();
+
+  if (!ANIME_STATUSES.includes(updates.status)) {
+    throw new Error("Invalid anime status.");
+  }
+
+  if (
+    !Number.isInteger(updates.score) ||
+    updates.score < 0 ||
+    updates.score > 10
+  ) {
+    throw new Error("Rating must be between 0 and 10.");
+  }
+
+  if (
+    !Number.isInteger(updates.episodes_total) ||
+    updates.episodes_total < 0
+  ) {
+    throw new Error("Total episodes must be zero or greater.");
+  }
+
+  if (
+    !Number.isInteger(updates.episodes_watched) ||
+    updates.episodes_watched < 0
+  ) {
+    throw new Error("Watched episodes must be zero or greater.");
+  }
+
+  if (
+    updates.episodes_total > 0 &&
+    updates.episodes_watched > updates.episodes_total
+  ) {
+    throw new Error("Watched episodes cannot exceed total episodes.");
+  }
+
+  await database.execute(
+    `UPDATE user_anime
+     SET status = ?,
+         score = ?,
+         episodes_total = ?,
+         episodes_watched = ?
+     WHERE id = ?`,
+    [
+      updates.status,
+      updates.score,
+      updates.episodes_total,
+      updates.episodes_watched,
+      id
+    ]
+  );
 }
 
 // Remove an anime from your personal watchlist
